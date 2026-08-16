@@ -1,0 +1,9 @@
+variable "resource_group_name" { type = string }
+variable "location" { type = string }
+variable "prefix" { type = string }
+variable "environment" { type = string }
+variable "hub_address_space" { type = list(string) }
+variable "spoke_address_space" { type = list(string) }
+variable "hub_subnet_prefixes" { type = map(list(string)) }
+variable "spoke_subnet_prefixes" { type = map(list(string)) }
+variable "tags" { type = map(string) }
