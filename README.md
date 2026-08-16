@@ -1,126 +1,133 @@
 # Azure Enterprise Landing Zone with Terraform
 
-Enterprise-style Azure landing zone built with Terraform to demonstrate reusable infrastructure modules, secure networking, identity, governance, and operational readiness.
+[![Terraform CI](https://github.com/ugochuk/azure-enterprise-landing-zone/actions/workflows/terraform-ci.yml/badge.svg)](https://github.com/ugochuk/azure-enterprise-landing-zone/actions/workflows/terraform-ci.yml)
+
+Enterprise-style Azure landing zone built with Terraform to demonstrate reusable infrastructure modules, secure networking, private connectivity, governance-as-code, CI validation, and operational readiness.
 
 ## What this project demonstrates
 
-- Infrastructure as Code with Terraform
-- Reusable Azure infrastructure modules
-- Hub-and-spoke virtual networking
-- Network security groups and subnet segmentation
-- Private DNS and private connectivity patterns
-- Log Analytics monitoring foundation
-- Managed identity and RBAC patterns
-- Environment-specific configuration
-- Production-minded naming, tagging, and outputs
+- Terraform Infrastructure as Code and reusable modules
+- Azure hub-and-spoke networking and VNet peering
+- Subnet segmentation and network security groups
+- Azure Key Vault using RBAC authorization
+- Private Endpoints and Azure Private DNS
+- Public network access disabled for protected services
+- Centralized Log Analytics foundation
+- Azure Policy represented as code
+- Separate development and production configuration
+- GitHub Actions for Terraform formatting, validation, and IaC security scanning
+- Production-minded naming, tagging, outputs, and documentation
 
 ## Architecture
 
-The reference architecture uses a hub-and-spoke network model:
-
-```text
-                    +-----------------------+
-                    |   Azure Subscription  |
-                    +-----------+-----------+
-                                |
-              +-----------------+-----------------+
-              |                                   |
-      +-------v--------+                  +-------v--------+
-      |   Hub VNet     |<---------------->|   Spoke VNet   |
-      | 10.10.0.0/16   |   VNet Peering   | 10.20.0.0/16   |
-      +-------+--------+                  +-------+--------+
-              |                                   |
-      +-------v--------+                  +-------v--------+
-      | Shared Services|                  | Workload Subnet|
-      | / Management   |                  | App / Platform |
-      +----------------+                  +----------------+
-              |
-      +-------v--------+
-      | Log Analytics  |
-      +----------------+
+```mermaid
+flowchart LR
+    SUB[Azure Subscription] --> POLICY[Azure Policy]
+    SUB --> HUB[Hub VNet]
+    HUB <-->|Peering| SPOKE[Workload Spoke]
+    SPOKE --> APP[App Subnet]
+    SPOKE --> DATA[Data Subnet]
+    DATA --> PE[Private Endpoint]
+    PE --> KV[Key Vault]
+    SPOKE --> DNS[Private DNS]
+    DNS --> PE
+    SUB --> LAW[Log Analytics]
 ```
 
-The project intentionally focuses on infrastructure patterns rather than deploying a business application. It is designed as a portfolio reference for cloud/platform engineering work.
+See [docs/architecture.md](docs/architecture.md) for the security model and detailed design.
 
 ## Repository structure
 
 ```text
 .
+├── .github/workflows/
+│   └── terraform-ci.yml
+├── docs/
+│   └── architecture.md
 ├── environments/
-│   ├── dev/
-│   └── prod/
+│   ├── dev/terraform.tfvars
+│   └── prod/terraform.tfvars
 ├── modules/
-│   ├── network/
-│   └── monitoring/
+│   ├── keyvault/
+│   ├── monitoring/
+│   └── network/
+├── governance.tf
 ├── main.tf
+├── outputs.tf
 ├── providers.tf
 ├── variables.tf
-├── outputs.tf
 └── versions.tf
 ```
 
-## Core design decisions
+## Design decisions
 
 ### Hub-and-spoke networking
 
-A hub-and-spoke model separates shared connectivity from application workloads and provides a scalable foundation for adding additional workload networks later.
+Shared connectivity and workload resources are separated so additional spokes can be introduced without redesigning the platform foundation.
 
-### Reusable Terraform modules
+### Private-by-default secrets platform
 
-Networking and monitoring resources are implemented as modules so the same patterns can be consumed consistently across multiple environments.
+Azure Key Vault has public network access disabled. Access is provided through a Private Endpoint in the workload network and resolved using Azure Private DNS.
 
-### Environment separation
+### RBAC authorization
 
-Development and production use separate variable files, allowing infrastructure to remain consistent while CIDR ranges, naming, and sizing vary by environment.
+Key Vault uses Azure RBAC instead of legacy vault access policies, providing an identity model that can be extended to managed identities and workload-specific roles.
 
-### Security-first defaults
+### Governance as code
 
-The implementation favors private networking patterns, explicit subnet definitions, centralized logging, and standardized tagging. Public exposure is intentionally minimized.
+A subscription-level Azure Policy assignment demonstrates how organizational requirements can be versioned and reviewed alongside Terraform infrastructure.
+
+### Automated quality gates
+
+GitHub Actions runs `terraform fmt`, `terraform init -backend=false`, `terraform validate`, and a Trivy IaC security scan. Pull requests therefore receive infrastructure validation before changes reach the main branch.
 
 ## Prerequisites
 
 - Terraform >= 1.6
 - Azure CLI
-- An Azure subscription
-- Appropriate Azure RBAC permissions
+- Azure subscription
+- Permissions to create the demonstrated resources and subscription policy assignment
 
-Authenticate with Azure:
+Authenticate:
 
 ```bash
 az login
 az account set --subscription <subscription-id>
 ```
 
-## Deploy
-
-Initialize Terraform:
+Initialize and validate:
 
 ```bash
 terraform init
+terraform fmt -check -recursive
+terraform validate
 ```
 
-Review the development plan:
+Plan development:
 
 ```bash
 terraform plan -var-file=environments/dev/terraform.tfvars
 ```
 
-Deploy:
+Apply only when using a non-production Azure subscription intended for testing:
 
 ```bash
 terraform apply -var-file=environments/dev/terraform.tfvars
 ```
 
+## CI/CD
+
+The included GitHub Actions workflow intentionally performs validation and security scanning without automatically applying infrastructure. In an enterprise implementation, deployment would normally use workload identity federation/OIDC, protected GitHub environments, required reviewers, and separate plan/apply stages.
+
 ## Security note
 
-This repository is an original portfolio project and does not contain proprietary code, customer data, tenant IDs, subscription IDs, credentials, or internal configuration from any employer.
+This is an original portfolio implementation. It contains no employer source code, customer information, credentials, tenant IDs, subscription IDs, or internal architecture.
 
-## Roadmap
+## Next enhancements
 
-- Add Azure Firewall integration
-- Add private endpoint example
-- Add Key Vault and managed identity module
-- Add Azure Policy assignments
-- Add GitHub Actions validation workflow
-- Add architecture diagram
-- Add automated Terraform tests
+- Workload identity federation for deployments
+- Remote Terraform state and state locking
+- Azure Firewall / routing module
+- Diagnostic settings for platform resources
+- Defender for Cloud integration
+- Automated Terraform tests
