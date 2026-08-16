@@ -44,3 +44,15 @@ module "monitoring" {
   environment         = var.environment
   tags                = local.common_tags
 }
+
+module "keyvault" {
+  source = "./modules/keyvault"
+
+  resource_group_name       = azurerm_resource_group.management.name
+  location                  = var.location
+  prefix                    = var.prefix
+  environment               = var.environment
+  private_endpoint_subnet_id = module.network.spoke_subnet_ids["snet-data"]
+  spoke_vnet_id             = module.network.spoke_vnet_id
+  tags                      = local.common_tags
+}
