@@ -12,3 +12,13 @@ output "log_analytics_workspace_id" {
   description = "Resource ID of the centralized Log Analytics workspace."
   value       = module.monitoring.log_analytics_workspace_id
 }
+
+output "key_vault_id" {
+  description = "Resource ID of the private platform Key Vault."
+  value       = module.keyvault.key_vault_id
+}
+
+output "key_vault_uri" {
+  description = "URI of the private platform Key Vault."
+  value       = module.keyvault.key_vault_uri
+}
