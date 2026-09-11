@@ -1,0 +1,27 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.0",
+  "resource_changes": [
+    {
+      "address": "azurerm_resource_group.example",
+      "mode": "managed",
+      "type": "azurerm_resource_group",
+      "name": "example",
+      "change": {"actions": ["create"]}
+    },
+    {
+      "address": "azurerm_virtual_network.example",
+      "mode": "managed",
+      "type": "azurerm_virtual_network",
+      "name": "example",
+      "change": {"actions": ["update"]}
+    },
+    {
+      "address": "azurerm_storage_account.example",
+      "mode": "managed",
+      "type": "azurerm_storage_account",
+      "name": "example",
+      "change": {"actions": ["delete", "create"]}
+    }
+  ]
+}
