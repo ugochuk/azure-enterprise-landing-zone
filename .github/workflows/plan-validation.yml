@@ -1,0 +1,38 @@
+name: Terraform Plan Validation
+
+on:
+  pull_request:
+    paths:
+      - "**/*.tf"
+      - "scripts/**"
+      - ".github/workflows/plan-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-plan-automation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate Python syntax
+        run: python -m py_compile scripts/terraform_plan_summary.py
+
+      - name: Exercise plan parser with sanitized fixture
+        run: |
+          python scripts/terraform_plan_summary.py tests/sample-plan.json --output plan-summary.json
+          cat plan-summary.json
+
+      - name: Upload validation summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-summary
+          path: plan-summary.json
